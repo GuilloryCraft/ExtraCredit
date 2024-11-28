@@ -4,9 +4,6 @@ version = "1.0.0"
 dump_lua = true
 priority = 0
 
-
-
-
 #Negative bonus chips UI
 [[patches]]
 [patches.pattern]

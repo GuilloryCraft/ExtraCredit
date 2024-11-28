@@ -79,7 +79,7 @@ SMODS.Joker{ --Double Rainbow
     end,
 
     calculate = function(self, card, context)
-        if context.repetition and context.cardarea == G.play and context.other_card.ability.name == 'Lucky Card' then
+        if context.repetition and context.cardarea == G.play and SMODS.has_enhancement(context.other_card, 'm_lucky') then
             return {
                 message = localize('k_again_ex'),
                 repetitions = 1,
@@ -375,7 +375,7 @@ SMODS.Joker{ --Warlock
             card.ability.extra.destructo = {}
 
         
-        elseif context.cardarea == G.play and context.individual and context.other_card.ability.name == "Lucky Card" then
+        elseif context.cardarea == G.play and context.individual and SMODS.has_enhancement(context.other_card, "m_lucky") then
             if pseudorandom('witch') < G.GAME.probabilities.normal / card.ability.extra.odds then
                 if #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
                     G.GAME.consumeable_buffer = G.GAME.consumeable_buffer + 1
@@ -878,3 +878,75 @@ SMODS.Joker{ --Ten Gallon
 }
 
 -- Page 2 Jokers
+
+-- Page 3 Jokers 
+
+SMODS.Joker{ --Lucky 7s
+    name = "Lucky 7s",
+    key = "lucky7s",
+    loc_txt = {
+        ['name'] = 'Lucky 7s',
+        ['text'] = {
+            [1] = "{C:attention}7s{} are considered",
+            [2] = "{C:attention}Lucky Cards{}"
+        }
+    },
+    pos = { --temp
+        x = 2,
+        y = 9
+    },
+    cost = 7,
+    rarity = 2,
+    blueprint_compat = false,
+    eternal_compat = true,
+    unlocked = true,
+    discovered = true,
+    --atlas = 'ECjokers',
+    loc_vars = function(self, info_queue, card)
+        info_queue[#info_queue+1] = G.P_CENTERS.m_lucky 
+        return
+    end,
+    calculate = function(self, card, context)
+        if context.check_enhancement and SMODS.Ranks[context.other_card.base.value].key == "7" then
+            return {m_lucky = true}
+        end
+    end
+}
+
+SMODS.Joker{ --Alloy
+    name = "Alloy",
+    key = "alloy",
+    loc_txt = {
+        ['name'] = 'Alloy',
+        ['text'] = {
+            [1] = "{C:attention}Gold Cards{} are also considered",
+            [2] = "{C:attention}Steel Cards{}, and vice versa"
+        }
+    },
+    pos = { --temp
+        x = 2,
+        y = 9
+    },
+    cost = 7,
+    rarity = 2,
+    blueprint_compat = false,
+    eternal_compat = true,
+    unlocked = true,
+    discovered = true,
+    --atlas = 'ECjokers',
+    loc_vars = function(self, info_queue, card)
+        info_queue[#info_queue+1] = G.P_CENTERS.m_gold
+        info_queue[#info_queue+1] = G.P_CENTERS.m_steel
+        return
+    end,
+    calculate = function(self, card, context)
+        if context.check_enhancement then
+            if context.other_card.config.center.key == "m_gold" then
+                return {m_steel = true}
+            end
+            if context.other_card.config.center.key == "m_steel" then
+                return {m_gold = true}
+            end
+        end
+    end
+}
