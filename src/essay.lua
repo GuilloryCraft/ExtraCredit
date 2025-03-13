@@ -1075,7 +1075,7 @@ SMODS.Joker{ --Ten Gallon
     end,
 
     calculate = function(self, card, context)
-        local dollars = G.GAME.dollars[1] or 0 -- get the first val
+        local dollars = to_number(G.GAME.dollars) or 0
         if context.cardarea == G.jokers and context.joker_main and (card.ability.extra.Xmult*math.floor((dollars + (G.GAME.dollar_buffer or 0))/card.ability.extra.dollars)) > 0 then
             return{
                 message = localize{type='variable',key='a_xmult',vars={1 + card.ability.extra.Xmult*math.floor((dollars + (G.GAME.dollar_buffer or 0))/card.ability.extra.dollars)}},
