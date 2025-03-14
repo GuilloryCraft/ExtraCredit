@@ -323,6 +323,9 @@ SMODS.Joker{ --Starfruit
     eternal_compat = false,
     unlocked = true,
     discovered = true,
+    pools = {
+        Food = true
+    },
     atlas = 'ECjokers',
 
     loc_vars = function(self, info_queue, card)
@@ -786,6 +789,9 @@ SMODS.Joker{ --Candy Necklace
     eternal_compat = false,
     unlocked = true,
     discovered = true,
+    pools = {
+        Food = true
+    },
     atlas = 'ECjokers',
 
     loc_vars = function(self, info_queue, card)
@@ -1181,6 +1187,9 @@ SMODS.Joker{ --Espresso
     eternal_compat = false,
     unlocked = true,
     discovered = true,
+    pools = {
+        Food = true
+    },
     atlas = 'ECjokers',
 
     loc_vars = function(self, info_queue, card)
@@ -1722,6 +1731,9 @@ SMODS.Joker{ --Ambrosia
     eternal_compat = false,
     unlocked = true,
     discovered = true,
+    pools = {
+        Food = true
+    },
     atlas = 'ECjokers',
 
     loc_vars = function(self, info_queue, card)
@@ -2669,6 +2681,9 @@ SMODS.Joker{ --Bad Apple
     eternal_compat = true,
     unlocked = true,
     discovered = true,
+    pools = {
+        Food = true
+    },
     atlas = 'ECjokers',
 
     loc_vars = function(self, info_queue, card)
