@@ -178,3 +178,27 @@ for i=1, #G.jokers.cards do
     eval_card(G.jokers.cards[i], {cardarea = G.jokers, full_hand = G.play.cards, scoring_hand = scoring_hand, scoring_name = text, poker_hands = poker_hands, before_but_not_as_much = true})
 end
 '''
+
+# manually check lucky 7 for quantum enhancments
+[[patches]]
+[patches.pattern]
+target = 'functions/state_events.lua'
+match_indent = true
+pattern = '''G.GAME.first_used_hand_level = nil
+end'''
+position = 'after'
+payload = '''
+if next(find_joker("Lucky 7")) then
+    local thunk = false
+    for i=1, #scoring_hand do
+        if scoring_hand[i]:get_id() == 7 and not SMODS.has_no_rank(scoring_hand[i]) then
+            thunk = true break
+        end
+    end
+    if thunk then
+        for i=1, #scoring_hand do
+            scoring_hand[i].gambling = true
+        end
+    end
+end
+'''

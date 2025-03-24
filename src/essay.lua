@@ -285,14 +285,14 @@ SMODS.Joker{ --Double Rainbow
     end,
 
     calculate = function(self, card, context)
-        if context.repetition and context.cardarea == G.play and context.other_card.config.center.key == "m_lucky" then
+        if context.repetition and context.cardarea == G.play and SMODS.get_enhancements(context.other_card)["m_lucky"] == true then
             return {
                 message = localize('k_again_ex'),
                 repetitions = 1,
                 card = card
             }
         
-        elseif context.repetition and context.cardarea == G.hand and context.other_card.config.center.key == "m_lucky" then
+        elseif context.repetition and context.cardarea == G.hand and SMODS.get_enhancements(context.other_card)["m_lucky"] == true then
             if (next(context.card_effects[1]) or #context.card_effects > 1) then
                 return {
                     message = localize('k_again_ex'),
@@ -592,7 +592,7 @@ SMODS.Joker{ --Warlock
             card.ability.extra.destructo = {}
 
         
-        elseif context.cardarea == G.play and context.individual and context.other_card.config.center.key == "m_lucky" then
+        elseif context.cardarea == G.play and context.individual and SMODS.get_enhancements(context.other_card)["m_lucky"] == true then
             if pseudorandom('witch') < G.GAME.probabilities.normal / card.ability.extra.odds then
                 if #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
                     G.GAME.consumeable_buffer = G.GAME.consumeable_buffer + 1
@@ -961,7 +961,7 @@ SMODS.Joker{ --Clown College
         y = 1
     },
     cost = 7,
-    rarity = 3,
+    rarity = 2,
     blueprint_compat = false,
     eternal_compat = true,
     unlocked = true,
@@ -1267,8 +1267,8 @@ SMODS.Joker{ --Traffic Light
     key = "trafficlight",
     config = {
         extra = {
-            Xmult = 2,
-            Xmult_mod = 0.5
+            Xmult = 2.5,
+            Xmult_mod = 1
         }
     },
     loc_txt = {
@@ -1277,7 +1277,7 @@ SMODS.Joker{ --Traffic Light
             [1] = 'Gives {X:mult,C:white}X#1#{} Mult',
             [2] = 'Decreases by {X:mult,C:white}X#2#{}',
             [3] = 'each hand played',
-            [4] = 'Resets after {X:mult,C:white}X1{}'
+            [4] = 'Resets after {X:mult,C:white}X0.5{}'
         }
     },
     pos = {
@@ -1297,7 +1297,7 @@ SMODS.Joker{ --Traffic Light
     end,
 
     calculate = function(self, card, context)
-        if context.cardarea == G.jokers and context.joker_main and card.ability.extra.Xmult > 1 then
+        if context.cardarea == G.jokers and context.joker_main then
             return{
                 message = localize{type='variable',key='a_xmult',vars={card.ability.extra.Xmult}},
                 Xmult_mod = card.ability.extra.Xmult
@@ -1307,8 +1307,8 @@ SMODS.Joker{ --Traffic Light
 
             card.ability.extra.Xmult = card.ability.extra.Xmult - card.ability.extra.Xmult_mod
 
-            if card.ability.extra.Xmult < 1 then
-                card.ability.extra.Xmult = 2
+            if card.ability.extra.Xmult < 0.5 then
+                card.ability.extra.Xmult = 2.5
                 return {
                     message = "Go!",
                     colour = G.C.GREEN
@@ -1316,9 +1316,9 @@ SMODS.Joker{ --Traffic Light
             elseif card.ability.extra.Xmult == 1.5 then
                 return {
                     message = localize{type='variable',key='a_xmult_minus',vars={card.ability.extra.Xmult_mod}},
-                    colour = G.C.RED
+                    colour = G.C.FILTER
                 }
-            elseif card.ability.extra.Xmult == 1 then
+            elseif card.ability.extra.Xmult == 0.5 then
                 return {
                     message = localize{type='variable',key='a_xmult_minus',vars={card.ability.extra.Xmult_mod}},
                     colour = G.C.RED
@@ -1512,7 +1512,7 @@ SMODS.Joker{ --Werewolf
         if context.before and not context.blueprint then
             local thunk = 0
             for k, v in ipairs(context.full_hand) do
-                if v.ability.set == 'Enhanced' and v.config.center.key ~= "m_wild" then
+                if contains(SMODS.get_enhancements(v), true) and v.config.center.key ~= "m_wild" then
                     thunk = thunk + 1
                     v:set_ability(G.P_CENTERS.m_wild, nil, true)
                     G.E_MANAGER:add_event(Event({
@@ -1596,7 +1596,7 @@ SMODS.Joker{ --Prideful Joker
     end,
 
     calculate = function(self, card, context)
-        if context.cardarea == G.play and context.individual and context.other_card.config.center.key == "m_wild" then
+        if context.cardarea == G.play and context.individual and SMODS.get_enhancements(context.other_card)["m_wild"] == true then
             return{
                 mult = card.ability.extra,
                 card = card
@@ -1682,7 +1682,7 @@ SMODS.Joker{ --Farmer
     },
     cost = 6,
     rarity = 1,
-    blueprint_compat = false,
+    blueprint_compat = true,
     eternal_compat = true,
     unlocked = true,
     discovered = true,
@@ -1693,7 +1693,7 @@ SMODS.Joker{ --Farmer
     end,
 
     calculate = function(self, card, context)
-        if context.cardarea == G.hand and context.end_of_round and context.individual and not context.repetition and context.other_card:is_suit(G.GAME.current_round.farmer_card.suit) and not context.blueprint then
+        if context.cardarea == G.hand and context.end_of_round and context.individual and not context.repetition and context.other_card:is_suit(G.GAME.current_round.farmer_card.suit) then
             delay(0.3)
             return {
                 dollars = 2,
@@ -1788,7 +1788,7 @@ SMODS.Joker{ --Clown Car
     config = {
         extra = {
             mult = 44,
-            money = 2
+            money = 3
         }
     },
     loc_txt = {
@@ -1849,7 +1849,7 @@ SMODS.Joker{ --Ship of Theseus
         x = 7,
         y = 2
     },
-    cost = 8,
+    cost = 9,
     rarity = 3,
     blueprint_compat = true,
     eternal_compat = true,
@@ -2284,9 +2284,9 @@ SMODS.Joker{ --Blackjack
     loc_txt = {
         ['name'] = 'Blackjack',
         ['text'] = {
-            [1] = "{C:mult}+#1#{} Mult if played",
-            [2] = "hand contains a scoring",
-            [3] = "{C:attention}Ace{} and {C:attention}face card",
+            [1] = "{C:mult}+#1#{} Mult if played hand",
+            [2] = "contains a scoring {C:attention}face ",
+            [3] = "{C:attention}card{} and nonscoring {C:attention}Ace{}",
         }
     },
     pos = {
@@ -2310,11 +2310,16 @@ SMODS.Joker{ --Blackjack
             local _ace, _face = false, false
             for i = 1, #context.scoring_hand do
                 if not SMODS.has_no_rank(context.scoring_hand[i]) then
-                    if context.scoring_hand[i]:get_id() == 14 then
-                        _ace = true
-                    end
                     if context.scoring_hand[i]:is_face() then
-                        _face = true
+                        _face = true break
+                    end
+                end
+            end
+
+            for i = 1, #context.full_hand do
+                if context.full_hand[i]:get_id() == 14 and not SMODS.has_no_rank(context.full_hand[i]) then
+                    if not contains(context.scoring_hand, context.full_hand[i]) then
+                        _ace = true
                     end
                 end
             end
@@ -2351,7 +2356,7 @@ SMODS.Joker{ --JotY
         x = 5,
         y = 3
     },
-    cost = 7,
+    cost = 9,
     rarity = 3,
     blueprint_compat = true,
     eternal_compat = true,
@@ -2379,7 +2384,7 @@ SMODS.Joker{ --Average Alice
     key = "averagealice",
     config = {
         extra = {
-            Xmult = 2
+            Xmult = 2.5
         }
     },
     loc_txt = {
@@ -2394,7 +2399,7 @@ SMODS.Joker{ --Average Alice
         x = 2,
         y = 4
     },
-    cost = 6,
+    cost = 7,
     rarity = 2,
     blueprint_compat = true,
     eternal_compat = true,
@@ -2411,10 +2416,10 @@ SMODS.Joker{ --Average Alice
             local _odd, _even = false, false
             for i = 1, #context.scoring_hand do
                 if not SMODS.has_no_rank(context.scoring_hand[i]) then
-                    if contains({14,3,5,7,9}, context.scoring_hand[i]:get_id()) and context.scoring_hand[i].ability.name ~= "Stone Card" then
+                    if contains({14,3,5,7,9}, context.scoring_hand[i]:get_id()) then
                         _odd = true
                     end
-                    if contains({2,4,6,8,10}, context.scoring_hand[i]:get_id()) and context.scoring_hand[i].ability.name ~= "Stone Card" then
+                    if contains({2,4,6,8,10}, context.scoring_hand[i]:get_id()) then
                         _even = true
                     end
                 end
@@ -2527,7 +2532,7 @@ SMODS.Joker{ --Chain Lightning
     config = {
         extra = {
             Xmult = 1,
-            Xmult_mod = 0.2,
+            Xmult_mod = 0.1,
             total = 0,
             so_far = 0
         }
@@ -2545,8 +2550,8 @@ SMODS.Joker{ --Chain Lightning
         x = 2,
         y = 3
     },
-    cost = 6,
-    rarity = 2,
+    cost = 9,
+    rarity = 3,
     blueprint_compat = true,
     eternal_compat = true,
     enhancement_gate = 'm_mult',
@@ -2765,11 +2770,18 @@ SMODS.Joker{ --Passport
 SMODS.Joker{ --Lucky 7
     name = "Lucky 7",
     key = "lucky7",
+    config = {
+        extra = {
+            lucky = false,
+            checked = false
+            }
+        },
     loc_txt = {
         ['name'] = 'Lucky 7',
         ['text'] = {
-            [1] = "{C:attention}7s{} are considered",
-            [2] = "{C:attention}Lucky Cards{}"
+            [1] = "If played hand contains",
+            [2] = "a scoring {C:attention}7{}, all played",
+            [3] = "cards count as {C:attention}Lucky Cards"
         }
     },
     pos = { 
@@ -2788,12 +2800,22 @@ SMODS.Joker{ --Lucky 7
         return
     end,
     calculate = function(self, card, context)
-        if context.check_enhancement and SMODS.Ranks[context.other_card.base.value].key == "7" then
-            return{
-                m_lucky = true
-            }
+
+        if context.check_enhancement then
+            if context.other_card.gambling then
+                return{
+                    m_lucky = true
+                }
+            end
+        end
+
+        if context.after then
+            for i=1, #context.scoring_hand do
+                context.scoring_hand[i].gambling = nil
+            end
         end
     end
+
 }
 
 SMODS.Joker{ --Alloy
@@ -2835,5 +2857,5 @@ SMODS.Joker{ --Alloy
         end
     end
 }
-
 end
+
