@@ -195,14 +195,11 @@ function ease_dollars(mod, x)
     -- Use Talisman's to_number if available
     local safe_mod = type(mod) == "table" and (to_number and to_number(mod) or tonumber(mod)) or mod
     local safe_x = type(x) == "table" and (to_number and to_number(x) or tonumber(x)) or x
-    
     -- If conversion fails, default to 0
     safe_mod = safe_mod or 0
     safe_x = safe_x or 0
-    
     -- Call original ease_dollars with converted values
     ed(safe_mod, safe_x)
-    
     for i = 1, #G.jokers.cards do
         local effects = G.jokers.cards[i]:calculate_joker({ EC_ease_dollars = safe_x })
     end
@@ -412,7 +409,7 @@ SMODS.Joker{ --Eclipse
     end,
 
     calculate = function(self, card, context)
-        if context.cardarea == G.jokers and (sum_levels() - to_big(12)) > 0 and context.joker_main then
+        if context.cardarea == G.jokers and (sum_levels() - to_big(12)) > to_big(0) and context.joker_main then
             return {
                 message = localize{type='variable',key='a_chips',vars={(sum_levels() - to_big(12))*card.ability.extra.chip_mod}},
                 chip_mod = (sum_levels() - to_big(12))*card.ability.extra.chip_mod,
