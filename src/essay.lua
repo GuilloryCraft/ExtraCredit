@@ -177,6 +177,17 @@ SMODS.current_mod.config_tab = function() --Config tab
     }
 end
 
+-- Talisman Compatibility
+
+to_big = to_big or function(x)
+  return x
+end
+to_number = to_number or function(x)
+  return x
+end
+
+-------------------------
+
 
 local function contains(table_, value)
     for _, v in pairs(table_) do
@@ -187,14 +198,24 @@ local function contains(table_, value)
 
     return false
 end
-local function sum_levels()
-    return ((G.GAME.hands['High Card'].level)+(G.GAME.hands['Pair'].level)+(G.GAME.hands['Two Pair'].level)+(G.GAME.hands['Three of a Kind'].level)+(G.GAME.hands['Straight'].level)+(G.GAME.hands['Flush'].level)+(G.GAME.hands['Full House'].level )+(G.GAME.hands['Four of a Kind'].level)+(G.GAME.hands['Straight Flush'].level)+(G.GAME.hands['Five of a Kind'].level)+(G.GAME.hands['Flush House'].level)+(G.GAME.hands['Flush Five'].level))
+local function eclipse_sum_levels()
+    local total_hands = to_big(0)
+    local total_levels = to_big(0)
+
+    for hand, data in pairs(G.GAME.hands) do
+        -- We should ignore hands which level is 0 or less for description consistency.
+        if data.level >= to_big(1) then
+            total_hands = total_hands + to_big(1)
+            total_levels = total_levels + data.level
+        end
+    end
+    return total_levels, total_hands
 end
 local ed = ease_dollars
 function ease_dollars(mod, x)
     ed(mod, x)
     for i = 1, #G.jokers.cards do
-        local effects = G.jokers.cards[i]:calculate_joker({ EC_ease_dollars = mod })
+        local effects = G.jokers.cards[i]:calculate_joker({ EC_ease_dollars = to_big(mod) })
     end
 end
 
@@ -398,16 +419,21 @@ SMODS.Joker{ --Eclipse
     atlas = 'ECjokers',
 
     loc_vars = function(self, info_queue, card)
-        return {vars = {((sum_levels()-12)*card.ability.extra.chip_mod), card.ability.extra.chip_mod}}
+        local levels, hands = eclipse_sum_levels()
+        return {vars = {((levels-hands)*card.ability.extra.chip_mod), card.ability.extra.chip_mod}}
     end,
 
     calculate = function(self, card, context)
-        if context.cardarea == G.jokers and (sum_levels() - 12) > 0 and context.joker_main then
-            return {
-                message = localize{type='variable',key='a_chips',vars={(sum_levels()-12)*card.ability.extra.chip_mod}},
-                chip_mod = (sum_levels()-12)*card.ability.extra.chip_mod,
-                colour = G.C.CHIPS
-            }
+        if context.cardarea == G.jokers and context.joker_main then
+            local levels, hands = eclipse_sum_levels()
+            local chips = (levels - hands) * card.ability.extra.chip_mod
+            if chips > to_big(0) then
+                return {
+                    message = localize{type='variable',key='a_chips',vars={chips}},
+                    chip_mod = chips,
+                    colour = G.C.CHIPS
+                }
+            end
         end
     end
 }
@@ -1071,15 +1097,18 @@ SMODS.Joker{ --Ten Gallon
     atlas = 'ECjokers',
 
     loc_vars = function(self, info_queue, card)
-        return {vars = {card.ability.extra.Xmult, card.ability.extra.dollars, (1 + card.ability.extra.Xmult*math.floor((G.GAME.dollars + (G.GAME.dollar_buffer or 0))/card.ability.extra.dollars))}}
+        return {vars = {card.ability.extra.Xmult, card.ability.extra.dollars, to_big(1) + to_big(card.ability.extra.Xmult)*math.floor((G.GAME.dollars + (G.GAME.dollar_buffer or to_big(0)))/to_big(card.ability.extra.dollars))}}
     end,
 
     calculate = function(self, card, context)
-        if context.cardarea == G.jokers and context.joker_main and (card.ability.extra.Xmult*math.floor((G.GAME.dollars + (G.GAME.dollar_buffer or 0))/card.ability.extra.dollars)) > 0 then
-            return{
-                message = localize{type='variable',key='a_xmult',vars={1 + card.ability.extra.Xmult*math.floor((G.GAME.dollars + (G.GAME.dollar_buffer or 0))/card.ability.extra.dollars)}},
-                Xmult_mod = 1 + card.ability.extra.Xmult*math.floor((G.GAME.dollars + (G.GAME.dollar_buffer or 0))/card.ability.extra.dollars)
-            }
+        if context.cardarea == G.jokers and context.joker_main then
+            local xmult = (to_big(card.ability.extra.Xmult)*math.floor((G.GAME.dollars + (G.GAME.dollar_buffer or to_big(0)))/to_big(card.ability.extra.dollars)))
+            if xmult > to_big(0) then
+                return {
+                    message = localize{type='variable',key='a_xmult',vars={to_big(1) + xmult}},
+                    Xmult_mod = to_big(1) + xmult
+                }
+            end
         end
     end
 }
@@ -2502,7 +2531,7 @@ SMODS.Joker{ --Hoarder
 
     calculate = function(self, card, context)
         if context.EC_ease_dollars and not context.blueprint then
-            if context.EC_ease_dollars > 0 then
+            if context.EC_ease_dollars > to_big(0) then
                 card.ability.extra_value = card.ability.extra_value + card.ability.extra
                 card:set_cost()
                 card_eval_status_text(card, 'extra', nil, nil, nil, {
