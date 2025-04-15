@@ -2810,7 +2810,7 @@ SMODS.Joker{ --Passport
 
     calculate = function(self, card, context)
         if card.ability.extra.stamps > 0 and context.discard and G.GAME.current_round.discards_left == 2 and not context.blueprint then
-            local eval =  function() return G.GAME.current_round.discards_left > 0 end
+            local eval =  function() return G.GAME.current_round.discards_left > 0 and card.ability.extra.stamps > 0 end
             juice_card_until(card, eval, true)
         end
 
