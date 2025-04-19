@@ -5,6 +5,15 @@ SMODS.Atlas({key = "ECother", path = "ECother.png", px = 71, py = 95, atlas_tabl
 ECconfig = SMODS.current_mod.config
 SMODS.current_mod.optional_features = { quantum_enhancements = true }
 
+if SMODS and SMODS.current_mod then
+	SMODS.Atlas({
+		key = "modicon",
+		path = "icon.png",
+		px = 32,
+		py = 32,
+	})
+end
+
 SMODS.current_mod.extra_tabs = function() --Credits tab
     local scale = 0.5
     return {
