@@ -5,8 +5,6 @@ dump_lua = true
 priority = 0
 
 
-
-
 #Negative bonus chips UI
 [[patches]]
 [patches.pattern]
@@ -19,8 +17,6 @@ match_indent = true
 payload = '''
 bonus_chips = (self.ability.bonus + (self.ability.perma_bonus or 0)) ~= 0 and (self.ability.bonus + (self.ability.perma_bonus or 0)) or nil,
 '''
-
-
 
 
 #Burglar instant for Bobby compat
@@ -49,7 +45,6 @@ ease_hands_played(self.ability.extra, true)
 match_indent = true
 
 
-
 #Debuff functionality
 [[patches]]
 [patches.pattern]
@@ -69,42 +64,6 @@ if next(find_joker("Permanent Marker")) and self.ability.set == "Enhanced" then 
 '''
 match_indent = true
 
-
-#Tuxedo, Farmer, and Go Fish resets
-[[patches]]
-[patches.pattern]
-target = 'functions/state_events.lua'
-pattern = '''
-reset_idol_card()
-'''
-position = 'after'
-payload = '''
-reset_tuxedo_card()
-reset_farmer_card()
-reset_fish_rank()
-'''
-match_indent = true
-
-[[patches]]
-[patches.pattern]
-target = 'game.lua'
-pattern = '''
-reset_idol_card()
-reset_mail_rank()
-self.GAME.current_round.ancient_card.suit = nil
-reset_ancient_card()
-'''
-position = 'after'
-payload = '''
-self.GAME.current_round.tuxedo_card.suit = nil
-reset_tuxedo_card()
-self.GAME.current_round.farmer_card.suit = nil
-reset_farmer_card()
-self.GAME.current_round.fish_rank.suit = nil
-reset_fish_rank()
-'''
-match_indent = true
-
 [[patches]]
 [patches.pattern]
 target = 'game.lua'
@@ -118,51 +77,6 @@ payload = '''
 tuxedo_card = {suit = 'Spades'},
 farmer_card = {suit = 'Spades'},
 fish_rank = {rank = 'Ace'},
-'''
-match_indent = true
-
-[[patches]]
-[patches.pattern]
-target = 'functions/common_events.lua'
-pattern = '''
-if valid_castle_cards[1] then 
-        local castle_card = pseudorandom_element(valid_castle_cards, pseudoseed('cas'..G.GAME.round_resets.ante))
-        G.GAME.current_round.castle_card.suit = castle_card.base.suit
-    end
-end
-'''
-position = 'after'
-payload = '''
-
-function reset_tuxedo_card()
-    local tuxedo_suits = {}
-    for k, v in ipairs({'Spades','Hearts','Clubs','Diamonds'}) do
-        if v ~= G.GAME.current_round.tuxedo_card.suit then tuxedo_suits[#tuxedo_suits + 1] = v end
-    end
-    local tuxedo_card = pseudorandom_element(tuxedo_suits, pseudoseed('tux'..G.GAME.round_resets.ante))
-    G.GAME.current_round.tuxedo_card.suit = tuxedo_card
-end
-
-function reset_farmer_card()
-    local farmer_suits = {}
-    for k, v in ipairs({'Spades','Hearts','Clubs','Diamonds'}) do
-        if v ~= G.GAME.current_round.farmer_card.suit then farmer_suits[#farmer_suits + 1] = v end
-    end
-    local farmer_card = pseudorandom_element(farmer_suits, pseudoseed('farm'..G.GAME.round_resets.ante))
-    G.GAME.current_round.farmer_card.suit = farmer_card
-end
-
-function reset_fish_rank()
-    local valid_fish_ranks = {}
-    for k, v in ipairs({'Ace', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King'}) do
-        if v ~= G.GAME.current_round.fish_rank.rank then
-            valid_fish_ranks[#valid_fish_ranks+1] = v
-        end
-    end
-    local fish_pick = pseudorandom_element(valid_fish_ranks, pseudoseed('fish'..G.GAME.round_resets.ante))
-    G.GAME.current_round.fish_rank.rank = fish_pick
-end
-
 '''
 match_indent = true
 
