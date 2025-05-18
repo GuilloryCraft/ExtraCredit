@@ -191,17 +191,6 @@ end
 -------------------------
 
 
--- -- DebugPlus Integration
--- Success, dpAPI = pcall(require, "debugplus-api")
-
--- if Success and dpAPI.isVersionCompatible(1) then
---     -- Do stuff with the api here.
---     local debugplus = dpAPI.registerID("ExtraCredit")
---     Logger = debugplus.logger
-    
--- end
-
-
 local function contains(table_, value)
     for _, v in pairs(table_) do
         if v == value then
@@ -1093,14 +1082,10 @@ SMODS.Joker{ --Handbook
 
     elseif context.cardarea == G.jokers and G.GAME.hands[context.scoring_name] and G.GAME.hands[context.scoring_name].played_this_round == 1 and not context.blueprint and context.before then 
             card.ability.extra.chips = card.ability.extra.chips + card.ability.extra.chip_mod
-            -- local pstring = context.scoring_name
-
             -- add the name of the scoring hand to the table
             table.insert(card.ability.extra.hands_played_this_round, context.scoring_name)
 
-            -- if Success and dpAPI.isVersionCompatible(1) then
-            --     Logger.log("hand is: " .. pstring)
-            -- end
+
 
             return{
                 message = localize('k_upgrade_ex'),
