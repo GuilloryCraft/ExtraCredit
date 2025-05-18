@@ -191,6 +191,17 @@ end
 -------------------------
 
 
+-- -- DebugPlus Integration
+-- Success, dpAPI = pcall(require, "debugplus-api")
+
+-- if Success and dpAPI.isVersionCompatible(1) then
+--     -- Do stuff with the api here.
+--     local debugplus = dpAPI.registerID("ExtraCredit")
+--     Logger = debugplus.logger
+    
+-- end
+
+
 local function contains(table_, value)
     for _, v in pairs(table_) do
         if v == value then
@@ -1020,7 +1031,8 @@ SMODS.Joker{ --Handbook
     config = {
         extra = {
             chip_mod = 5,
-            chips = 0
+            chips = 0,
+            hands_played_this_round = {}
             }
         },
     loc_txt = {
@@ -1029,7 +1041,8 @@ SMODS.Joker{ --Handbook
             [1] = "This Joker gains {C:blue}+#1#{} Chips if played",
             [2] = "{C:attention}poker hand{} has {C:attention}not{}",
             [3] = "already been played this round",
-            [4] = "{C:inactive}(Currently {C:blue}+#2#{C:inactive} Chips)"
+            [4] = "{C:inactive}(Currently {C:blue}+#2#{C:inactive} Chips)",
+            [5] = "{C:inactive}(Hands played: {C:attention}#3#{C:inactive})"
         }
     },
     pos = {
@@ -1046,7 +1059,28 @@ SMODS.Joker{ --Handbook
     atlas = 'ECjokers',
 
     loc_vars = function(self, info_queue, card)
-        return {vars = {card.ability.extra.chip_mod, card.ability.extra.chips}}
+
+        local played_hands_str =  ""
+
+
+        -- credit to OppositeWolf770 in the Paperback mod for this section of code
+        for i = 1, #card.ability.extra.hands_played_this_round do
+            
+            if i == 1 then
+                played_hands_str = played_hands_str .. " "
+            else
+                played_hands_str = played_hands_str .. ", "
+            end
+
+            played_hands_str = played_hands_str .. localize(card.ability.extra.hands_played_this_round[i], "poker_hands")   
+        end
+
+        if played_hands_str == "" then
+            played_hands_str = "None"
+        end
+
+
+        return {vars = {card.ability.extra.chip_mod, card.ability.extra.chips, played_hands_str}}
     end,
 
     calculate = function(self, card, context)
@@ -1059,12 +1093,38 @@ SMODS.Joker{ --Handbook
 
     elseif context.cardarea == G.jokers and G.GAME.hands[context.scoring_name] and G.GAME.hands[context.scoring_name].played_this_round == 1 and not context.blueprint and context.before then 
             card.ability.extra.chips = card.ability.extra.chips + card.ability.extra.chip_mod
+            -- local pstring = context.scoring_name
+
+            -- add the name of the scoring hand to the table
+            table.insert(card.ability.extra.hands_played_this_round, context.scoring_name)
+
+            -- if Success and dpAPI.isVersionCompatible(1) then
+            --     Logger.log("hand is: " .. pstring)
+            -- end
+
             return{
                 message = localize('k_upgrade_ex'),
                 card = card,
                 colour = G.C.CHIPS
-            }             
+            }
         end
+
+
+    -- Need to reset the hands_played_this_round table at the end of the round
+    if context.end_of_round and context.main_eval and not context.blueprint then
+        -- Sets the table to {} at end of round
+        card.ability.extra.hands_played_this_round = {}
+        -- if Success and dpAPI.isVersionCompatible(1) then
+        --     Logger.log("End of Round Trigger!")
+        -- end
+
+        return{
+            message = localize('k_reset'),
+            card = card,
+            colour = G.C.RED
+        }
+    end
+
     end
 
 }
