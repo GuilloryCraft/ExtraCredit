@@ -3035,6 +3035,7 @@ SMODS.Back{ --Echo Deck
 
 local function reset_tuxedo_card()
 	local tuxedo_suits = {}
+    G.GAME.current_round.tuxedo_card = G.GAME.current_round.tuxedo_card or {}
 	for k, suit in pairs(SMODS.Suits) do
 		if
 			k ~= G.GAME.current_round.tuxedo_card.suit
@@ -3049,6 +3050,7 @@ end
 
 local function reset_farmer_card()
 	local farmer_suits = {}
+    G.GAME.current_round.farmer_card = G.GAME.current_round.farmer_card or {}
 	for k, suit in pairs(SMODS.Suits) do
 		if
 			k ~= G.GAME.current_round.farmer_card.suit
@@ -3063,6 +3065,7 @@ end
 
 local function reset_fish_rank()
 	local valid_fish_ranks = {}
+    G.GAME.current_round.fish_rank = G.GAME.current_round.fish_rank or {}
 	for k, rank in pairs(SMODS.Ranks) do
 		if
 			k ~= G.GAME.current_round.fish_rank.rank
