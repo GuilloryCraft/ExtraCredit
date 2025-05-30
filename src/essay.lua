@@ -1,7 +1,7 @@
 local mod = SMODS.current_mod
-SMODS.Atlas({key = "modicon", path = "modicon.png", px = 31, py = 32, atlas_table = "ASSET_ATLAS"}):register()
-SMODS.Atlas({key = "ECjokers", path = "ECjokers.png", px = 71, py = 95, atlas_table = "ASSET_ATLAS"}):register()
-SMODS.Atlas({key = "ECother", path = "ECother.png", px = 71, py = 95, atlas_table = "ASSET_ATLAS"}):register()
+SMODS.Atlas({key = "modicon", path = "modicon.png", px = 31, py = 32, atlas_table = "ASSET_ATLAS"})
+SMODS.Atlas({key = "ECjokers", path = "ECjokers.png", px = 71, py = 95, atlas_table = "ASSET_ATLAS"})
+SMODS.Atlas({key = "ECother", path = "ECother.png", px = 71, py = 95, atlas_table = "ASSET_ATLAS"})
 
 ECconfig = SMODS.current_mod.config
 SMODS.current_mod.optional_features = { quantum_enhancements = true }
@@ -346,6 +346,9 @@ SMODS.Joker{ --Starfruit
     eternal_compat = false,
     unlocked = true,
     discovered = true,
+    pools = {
+        Food = true
+    },
     atlas = 'ECjokers',
 
     loc_vars = function(self, info_queue, card)
@@ -687,7 +690,7 @@ SMODS.Joker{ --Purple Joker
                 }
             end
         
-        elseif context.cardarea == G.jokers and context.joker_main and context.scoring_hand and card.ability.extra.mulchs > 1 then
+        elseif context.cardarea == G.jokers and context.joker_main and context.scoring_hand and card.ability.extra.mulchs > 0 then
             return{
                 colour = G.C.PURPLE, --color doesn't work :(
                 message = "+"..card.ability.extra.mulchs.." Mulchs!",
@@ -814,6 +817,9 @@ SMODS.Joker{ --Candy Necklace
     eternal_compat = false,
     unlocked = true,
     discovered = true,
+    pools = {
+        Food = true
+    },
     atlas = 'ECjokers',
 
     loc_vars = function(self, info_queue, card)
@@ -1055,9 +1061,7 @@ SMODS.Joker{ --Handbook
         -- credit to OppositeWolf770 in the Paperback mod for this section of code
         for i = 1, #card.ability.extra.hands_played_this_round do
             
-            if i == 1 then
-                played_hands_str = played_hands_str .. " "
-            else
+            if i ~= 1 then
                 played_hands_str = played_hands_str .. ", "
             end
 
@@ -1257,6 +1261,9 @@ SMODS.Joker{ --Espresso
     eternal_compat = false,
     unlocked = true,
     discovered = true,
+    pools = {
+        Food = true
+    },
     atlas = 'ECjokers',
 
     loc_vars = function(self, info_queue, card)
@@ -1800,6 +1807,9 @@ SMODS.Joker{ --Ambrosia
     eternal_compat = false,
     unlocked = true,
     discovered = true,
+    pools = {
+        Food = true
+    },
     atlas = 'ECjokers',
 
     loc_vars = function(self, info_queue, card)
@@ -2044,9 +2054,6 @@ SMODS.Joker{ --Accretion Disk
                     card.ability.extra.used = card.ability.extra.used + 1
                 end
                 if card.ability.extra.used >= 3 then
-                    if not context.blueprint then
-                        card.ability.extra.used = 0
-                    end
                     local _hand, _tally = nil, 0
                     for k, v in ipairs(G.handlist) do
                         if G.GAME.hands[v].visible and G.GAME.hands[v].played > _tally then
@@ -2108,7 +2115,8 @@ SMODS.Joker{ --Go Fish
             card.ability.extra.fish = {}
             if not card.ability.extra.fished then
                 for i=1, #context.scoring_hand do
-                    if context.scoring_hand[i].base.value == G.GAME.current_round.fish_rank.rank and not context.scoring_hand[i].debuff then
+                    if not SMODS.has_no_rank(context.scoring_hand[i])
+                    and context.scoring_hand[i].base.value == G.GAME.current_round.fish_rank.rank and not context.scoring_hand[i].debuff then
                         card.ability.extra.fish[#card.ability.extra.fish + 1] = context.scoring_hand[i]
                         card.ability.extra.fished = true
                     end
@@ -2771,6 +2779,9 @@ SMODS.Joker{ --Bad Apple
     eternal_compat = false,
     unlocked = true,
     discovered = true,
+    pools = {
+        Food = true
+    },
     atlas = 'ECjokers',
 
     loc_vars = function(self, info_queue, card)
@@ -3081,7 +3092,8 @@ SMODS.Back{ --Echo Deck
 local function reset_tuxedo_card()
 	local tuxedo_suits = {}
     G.GAME.current_round.tuxedo_card = G.GAME.current_round.tuxedo_card or {}
-	for k, suit in pairs(SMODS.Suits) do
+	for _, k in ipairs(SMODS.Suit.obj_buffer) do
+        local suit = SMODS.Suits[k]
 		if
 			k ~= G.GAME.current_round.tuxedo_card.suit
 			and (type(suit.in_pool) ~= "function" or suit:in_pool({ rank = "" }))
@@ -3096,7 +3108,8 @@ end
 local function reset_farmer_card()
 	local farmer_suits = {}
     G.GAME.current_round.farmer_card = G.GAME.current_round.farmer_card or {}
-	for k, suit in pairs(SMODS.Suits) do
+	for _, k in ipairs(SMODS.Suit.obj_buffer) do
+        local suit = SMODS.Suits[k]
 		if
 			k ~= G.GAME.current_round.farmer_card.suit
 			and (type(suit.in_pool) ~= "function" or suit:in_pool({ rank = "" }))
@@ -3111,7 +3124,8 @@ end
 local function reset_fish_rank()
 	local valid_fish_ranks = {}
     G.GAME.current_round.fish_rank = G.GAME.current_round.fish_rank or {}
-	for k, rank in pairs(SMODS.Ranks) do
+	for _, k in ipairs(SMODS.Rank.obj_buffer) do
+        local rank = SMODS.Ranks[k]
 		if
 			k ~= G.GAME.current_round.fish_rank.rank
 			and (type(rank.in_pool) ~= "function" or rank:in_pool({ suit = "" }))
