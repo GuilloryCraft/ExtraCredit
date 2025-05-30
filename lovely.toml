@@ -116,3 +116,20 @@ if next(find_joker("Lucky 7")) then
     end
 end
 '''
+
+# Accretion Disk
+[[patches]]
+[patches.pattern]
+target = 'functions/button_callbacks.lua'
+match_indent = true
+pattern = '''SMODS.calculate_context({using_consumeable = true, consumeable = card, area = card.from_area})'''
+position = 'after'
+payload = '''
+for i = 1, #G.jokers.cards do
+    local card = G.jokers.cards[i]
+    if card.config.center and card.config.center.key == 'j_ExtraCredit_accretiondisk' then
+        if card.ability.extra.used >= 3 then
+            card.ability.extra.used = 0
+        end
+    end
+end'''
