@@ -77,6 +77,8 @@ payload = '''
 tuxedo_card = {suit = 'Spades'},
 farmer_card = {suit = 'Spades'},
 fish_rank = {rank = 'Ace'},
+stupid_card = {rank = 'Ace', id = 14},
+math_val = 2,
 '''
 match_indent = true
 
