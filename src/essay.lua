@@ -260,6 +260,14 @@ local function unique_rarities()
     end
     return #rarities
 end
+local sc = Card.set_cost
+function Card:set_cost()
+    sc(self)
+    if self.config.center.key == 'j_ExtraCredit_xilande' then
+        self.cost = math.floor(20*(100-G.GAME.discount_percent)/100)
+        self.sell_cost = -1
+    end
+end
 
 -- Page 1 Jokers
 if ECconfig.wave1 then
@@ -3167,7 +3175,8 @@ SMODS.Joker{ --CampfireCollective
         extra = {
             balance = false,
             tally_curr = 0,
-            tally_need = 7
+            tally_need = 7,
+            booster_repeat = 3
         }
     },
     loc_txt = {
@@ -3186,7 +3195,7 @@ SMODS.Joker{ --CampfireCollective
     },
     cost = 20,
     rarity = "ExtraCredit_alumni",
-    blueprint_compat = true,
+    blueprint_compat = false,
     eternal_compat = true,
     unlocked = true,
     discovered = true,
@@ -3197,17 +3206,9 @@ SMODS.Joker{ --CampfireCollective
     end,
 
     calculate = function(self, card, context)
-        if context.repetition then
-            if context.cardarea == G.play then
-                if pseudorandom('stardust') < 1 / 7 then
-                    return {
-                        message = localize('k_again_ex'),
-                        repetitions = 1,
-                        card = card
-                    }
-                end
-            elseif context.cardarea == G.hand then
-                if (next(context.card_effects[1]) or #context.card_effects > 1) then
+        if not context.blueprint then
+            if context.repetition then
+                if context.cardarea == G.play then
                     if pseudorandom('stardust') < 1 / 7 then
                         return {
                             message = localize('k_again_ex'),
@@ -3215,272 +3216,288 @@ SMODS.Joker{ --CampfireCollective
                             card = card
                         }
                     end
+                elseif context.cardarea == G.hand then
+                    if (next(context.card_effects[1]) or #context.card_effects > 1) then
+                        if pseudorandom('stardust') < 1 / 7 then
+                            return {
+                                message = localize('k_again_ex'),
+                                repetitions = 1,
+                                card = card
+                            }
+                        end
+                    end
                 end
-            end
 
-        elseif context.reroll_shop then
-            if pseudorandom('stardust') < 1 / 4 then
-                ease_dollars(5)
-                card:juice_up(0.5, 0.5)
-            end
+            elseif context.reroll_shop then
+                if pseudorandom('stardust') < 1 / 4 then
+                    ease_dollars(5)
+                    card:juice_up(0.5, 0.5)
+                end
 
-        elseif context.cardarea == G.jokers and context.before then
-            if pseudorandom('stardust') < 1 / 3 then
+            elseif context.cardarea == G.jokers and context.before then
                 if pseudorandom('stardust') < 1 / 3 then
-                    local text,disp_text = context.scoring_name
-                    card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = localize('k_level_up_ex')})
-                    update_hand_text({sound = 'button', volume = 0.7, pitch = 0.8, delay = 0.3}, {handname=localize(text, 'poker_hands'),chips = G.GAME.hands[text].chips, mult = G.GAME.hands[text].mult, level=G.GAME.hands[text].level})
-                    level_up_hand(context.blueprint_card or card, text, nil, 3)
-                elseif pseudorandom('stardust') < 1 / 2 then
-                    G.E_MANAGER:add_event(Event({
-                    func = (function()
-                    local valid_cards = {}
-                        for k, v in pairs(context.scoring_hand) do
-                            if not v.seal then
-                                valid_cards[#valid_cards+1] = v
-                            end
-                        end
-                        if valid_cards[1] then
-                            pseudorandom_element(valid_cards, pseudoseed('stardust')):set_seal(SMODS.poll_seal({guaranteed = true}), true)
-                        end
-                        return true
-                    end)
-                    }))
-                else
-                    card.ability.extra.balance = true
-                end
-            end
-
-        elseif card.ability.extra.balance and context.before_but_not_as_much then
-            card.ability.extra.balance = false
-            local bal = math.floor((mult + hand_chips)/2)
-            mult = bal
-            hand_chips = bal
-            update_hand_text({delay = 0}, {mult = bal, chips = bal})
-            G.E_MANAGER:add_event(Event({
-            func = (function()
-                local text = localize('k_balanced')
-                play_sound('gong', 0.94, 0.3)
-                play_sound('gong', 0.94*1.5, 0.2)
-                play_sound('tarot1', 1.5)
-                ease_colour(G.C.UI_CHIPS, {0.8, 0.45, 0.85, 1})
-                ease_colour(G.C.UI_MULT, {0.8, 0.45, 0.85, 1})
-                attention_text({
-                    scale = 1.4, text = text, hold = 2, align = 'cm', offset = {x = 0,y = -2.7},major = G.play
-                })
-                G.E_MANAGER:add_event(Event({
-                    trigger = 'after',
-                    blockable = false,
-                    blocking = false,
-                    delay =  4.3,
-                    func = (function() 
-                            ease_colour(G.C.UI_CHIPS, G.C.BLUE, 2)
-                            ease_colour(G.C.UI_MULT, G.C.RED, 2)
-                        return true
-                    end)
-                }))
-                G.E_MANAGER:add_event(Event({
-                    trigger = 'after',
-                    blockable = false,
-                    blocking = false,
-                    no_delete = true,
-                    delay =  6.3,
-                    func = (function() 
-                        G.C.UI_CHIPS[1], G.C.UI_CHIPS[2], G.C.UI_CHIPS[3], G.C.UI_CHIPS[4] = G.C.BLUE[1], G.C.BLUE[2], G.C.BLUE[3], G.C.BLUE[4]
-                        G.C.UI_MULT[1], G.C.UI_MULT[2], G.C.UI_MULT[3], G.C.UI_MULT[4] = G.C.RED[1], G.C.RED[2], G.C.RED[3], G.C.RED[4]
-                        return true
-                    end)
-                }))
-                return true
-            end)
-            }))
-
-            delay(0.6)
-
-        elseif context.cardarea == G.jokers and context.joker_main then
-            if pseudorandom('stardust') < 1 / 2 then
-                local thunk = pseudorandom_element({'mult','chips','xmult'}, pseudoseed('stardust'))
-                if thunk == 'mult' then
-                    thunk = pseudorandom_element({10,20,50}, pseudoseed('stardust'))
-                    return {
-                        message = localize{type='variable',key='a_mult',vars={thunk}},
-                        mult_mod = thunk,
-                        colour = G.C.MULT
-                    }
-                elseif thunk == 'chips' then
-                    thunk = pseudorandom_element({80,120,250}, pseudoseed('stardust'))
-                    return {
-                        message = localize{type='variable',key='a_chips',vars={thunk}},
-                        chip_mod = thunk,
-                        colour = G.C.CHIPS
-                    }
-                else
-                    thunk = pseudorandom_element({1.5,2,4}, pseudoseed('stardust'))
-                    return{
-                        message = localize{type='variable',key='a_xmult',vars={thunk}},
-                        Xmult_mod = thunk,
-                        colour = G.C.MULT
-                    }
-                end
-                
-            elseif pseudorandom('stardust') < 2 / 3 then
-                local thunk = pseudorandom_element({'money','consumable','superscore','digging'}, pseudoseed('stardust'))
-                if thunk == 'money' then
-                    thunk = pseudorandom_element({2,5,10}, pseudoseed('stardust'))
-                    return{
-                        dollars = thunk,
-                        card = card
-                    }
-                elseif thunk == 'consumable' and #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
-                    thunk = pseudorandom_element({'Tarot','Planet','Tarot','Planet','Spectral'}, pseudoseed('stardust'))
-                    G.GAME.consumeable_buffer = G.GAME.consumeable_buffer + 1
-                        return {
-                            extra = {focus = card, message = localize('k_plus_'..string.lower(thunk)), func = function()
-                                G.E_MANAGER:add_event(Event({
-                                    trigger = 'before',
-                                    delay = 0.0,
-                                    func = (function()
-                                            local _card = create_card(thunk,G.consumeables, nil, nil, nil, nil, nil, 'stardust')
-                                            _card:add_to_deck()
-                                            G.consumeables:emplace(_card)
-                                            G.GAME.consumeable_buffer = 0
-                                        return true
-                                    end)}))
-                            end},
-                            colour = G.C.SECONDARY_SET.Spectral,
-                            card = card
-                        }
-                elseif thunk == 'superscore' then
-                    return{
-                        message = "Variety!",
-                        mult_mod = 20,
-                        Xmult_mod = 2,
-                        chip_mod = 120,
-                        colour = G.C.PURPLE
-                    }
-                elseif thunk == 'digging' then
-                    ease_hands_played(1)
-                    ease_discard(1, nil, true)
-                    card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+1 "..localize('k_hud_discards'), colour = G.C.RED})
-                    card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+1 "..localize('k_hud_hands'), colour = G.C.BLUE})
-                end
-            else 
-                local thunk = pseudorandom_element({'tag','copy','tally'}, pseudoseed('stardust'))
-                if thunk == 'tag' then
-                    thunk = pseudorandom_element({1,1,1,2,2,3}, pseudoseed('stardust'))
-                    for i=1, thunk do
+                    if pseudorandom('stardust') < 1 / 3 then
+                        local text,disp_text = context.scoring_name
+                        card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = localize('k_level_up_ex')})
+                        update_hand_text({sound = 'button', volume = 0.7, pitch = 0.8, delay = 0.3}, {handname=localize(text, 'poker_hands'),chips = G.GAME.hands[text].chips, mult = G.GAME.hands[text].mult, level=G.GAME.hands[text].level})
+                        level_up_hand(context.blueprint_card or card, text, nil, 2)
+                    elseif pseudorandom('stardust') < 1 / 2 then
                         G.E_MANAGER:add_event(Event({
-                            func = (function()
-                            add_tag(Tag('tag_double'))
-                            play_sound('generic1', 0.9 + math.random()*0.1, 0.8)
-                            play_sound('holo1', 1.2 + math.random()*0.1, 0.4)
+                        func = (function()
+                        local valid_cards = {}
+                            for k, v in pairs(context.scoring_hand) do
+                                if not v.seal then
+                                    valid_cards[#valid_cards+1] = v
+                                end
+                            end
+                            if valid_cards[1] then
+                                pseudorandom_element(valid_cards, pseudoseed('stardust')):set_seal(SMODS.poll_seal({guaranteed = true}), true)
+                            end
                             return true
-                            end)
+                        end)
                         }))
-                    end
-                    delay(0.3)
-                elseif thunk == 'copy' then
-                    thunk = pseudorandom_element(G.jokers.cards, pseudoseed('stardust'))
-                    local _card = copy_card(thunk,nil,nil,nil,true)
-                    _card:add_to_deck()
-                    G.jokers:emplace(_card)
-                    _card:set_edition({negative = true})
-                    if _card.ability.eternal then
-                        _card.ability.eternal = nil
-                    end
-                    _card.ability.perishable = true
-                    _card.ability.perish_tally = 2
-                elseif thunk == 'tally' and not context.blueprint then
-                    card.ability.extra.tally_curr = card.ability.extra.tally_curr + 1
-                    card_eval_status_text(card, 'extra', nil, nil, nil, {message = tostring(card.ability.extra.tally_curr).."/"..tostring(card.ability.extra.tally_need), colour = G.C.PURPLE})
-                    if card.ability.extra.tally_curr == card.ability.extra.tally_need then
-                        G.jokers.config.card_limit = G.jokers.config.card_limit + 1
-                        delay(0.5)
-                        card_eval_status_text(card, 'extra', nil, nil, nil, {message = "+1 Joker Slot!", colour = G.C.FILTER})
-                        card.ability.extra.tally_curr = 0
+                    else
+                        card.ability.extra.balance = true
                     end
                 end
-            end
 
-        elseif context.lucky_trigger then 
-            if pseudorandom('stardust') < 1 / 4 then
-                if not context.other_card.edition then
-                    context.other_card:set_edition(poll_edition('stardust',nil,true,true))
-                end
-            end
-
-        elseif context.end_of_round and not context.individual and not context.repetition then
-            if G.GAME.blind.boss then
-                
-            end
-            local thunk = false
-            for k, v in ipairs(G.jokers.cards) do
-                if v.set_cost and pseudorandom('stardust') < 1 / 4 then 
-                    v.ability.extra_value = (v.ability.extra_value or 0) + 3
-                    v:set_cost()
-                    thunk = true
-                end
-            end
-            for k, v in ipairs(G.consumeables.cards) do
-                if v.set_cost and pseudorandom('stardust') < 1 / 4 then 
-                    v.ability.extra_value = (v.ability.extra_value or 0) + 3
-                    v:set_cost()
-                    thunk = true
-                end
-            end
-            if thunk then
-                return {
-                    message = localize('k_val_up'),
-                    colour = G.C.MONEY
-                }
-            end
-
-        elseif context.skip_blind then
-            if pseudorandom('stardust') < 1 / 4 then
-                G.hand:change_size(1)
-                card_eval_status_text(card, 'extra', nil, nil, nil, {message = localize({type='variable',key='a_handsize',vars={1}}), colour = G.C.FILTER})
-            end
-
-        elseif context.skipping_booster and not context.open_booster then
-            if pseudorandom('stardust') < 1 / 3 then
+            elseif card.ability.extra.balance and context.before_but_not_as_much then
+                card.ability.extra.balance = false
+                local bal = math.floor((mult + hand_chips)/2)
+                mult = bal
+                hand_chips = bal
+                update_hand_text({delay = 0}, {mult = bal, chips = bal})
                 G.E_MANAGER:add_event(Event({
                 func = (function()
-                    add_tag(Tag(pseudorandom_element({'tag_buffoon','tag_charm','tag_meteor','tag_standard','tag_ethereal'}, pseudoseed('stardust'))))
-                    play_sound('generic1', 0.9 + math.random()*0.1, 0.8)
-                    play_sound('holo1', 1.2 + math.random()*0.1, 0.4)
+                    local text = localize('k_balanced')
+                    play_sound('gong', 0.94, 0.3)
+                    play_sound('gong', 0.94*1.5, 0.2)
+                    play_sound('tarot1', 1.5)
+                    ease_colour(G.C.UI_CHIPS, {0.8, 0.45, 0.85, 1})
+                    ease_colour(G.C.UI_MULT, {0.8, 0.45, 0.85, 1})
+                    attention_text({
+                        scale = 1.4, text = text, hold = 2, align = 'cm', offset = {x = 0,y = -2.7},major = G.play
+                    })
+                    G.E_MANAGER:add_event(Event({
+                        trigger = 'after',
+                        blockable = false,
+                        blocking = false,
+                        delay =  4.3,
+                        func = (function() 
+                                ease_colour(G.C.UI_CHIPS, G.C.BLUE, 2)
+                                ease_colour(G.C.UI_MULT, G.C.RED, 2)
+                            return true
+                        end)
+                    }))
+                    G.E_MANAGER:add_event(Event({
+                        trigger = 'after',
+                        blockable = false,
+                        blocking = false,
+                        no_delete = true,
+                        delay =  6.3,
+                        func = (function() 
+                            G.C.UI_CHIPS[1], G.C.UI_CHIPS[2], G.C.UI_CHIPS[3], G.C.UI_CHIPS[4] = G.C.BLUE[1], G.C.BLUE[2], G.C.BLUE[3], G.C.BLUE[4]
+                            G.C.UI_MULT[1], G.C.UI_MULT[2], G.C.UI_MULT[3], G.C.UI_MULT[4] = G.C.RED[1], G.C.RED[2], G.C.RED[3], G.C.RED[4]
+                            return true
+                        end)
+                    }))
                     return true
                 end)
                 }))
-            end
 
-        elseif context.setting_blind then
-            local thunk = pseudorandom_element({'hands','discards','both','score'}, pseudoseed('stardust'))
-            if thunk == 'hands' then
-                thunk = pseudorandom_element({1,2,2,3,4}, pseudoseed('stardust'))
-                ease_hands_played(thunk, true)
-                card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+"..tostring(thunk).." "..localize('k_hud_hands'), colour = G.C.BLUE})
-            elseif thunk == 'discards' then
-                thunk = pseudorandom_element({1,2,2,3,4}, pseudoseed('stardust'))
-                ease_discard(thunk, true, true)
-                card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+"..tostring(thunk).." "..localize('k_hud_discards'), colour = G.C.RED})
-            elseif thunk == 'both' then
-                thunk = pseudorandom_element({1,2,2,3,4}, pseudoseed('stardust'))
-                ease_hands_played(thunk, true)
-                card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+"..tostring(thunk).." "..localize('k_hud_hands'), colour = G.C.BLUE})
-                ease_discard(thunk, true, true)
-                card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+"..tostring(thunk).." "..localize('k_hud_discards'), colour = G.C.RED})
-            elseif thunk == 'score' then
-                thunk = pseudorandom_element({0.25,0.5,0.5,0.75,0.75,0.75},pseudoseed('stardust'))
-                G.E_MANAGER:add_event(Event({
-                    func = function()
-                        G.GAME.blind.chips = math.floor(G.GAME.blind.chips * thunk)
-                        G.GAME.blind.chip_text = number_format(G.GAME.blind.chips)
-                        play_sound('chips2')
-                        card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "X"..tostring(thunk).." Score Requirement", colour = G.C.RED})
-                        return true
+                delay(0.6)
+
+            elseif context.cardarea == G.jokers and context.joker_main then
+                if pseudorandom('stardust') < 1 / 2 then
+                    local thunk = pseudorandom_element({'mult','chips','xmult'}, pseudoseed('stardust'))
+                    if thunk == 'mult' then
+                        thunk = pseudorandom_element({10,20,50}, pseudoseed('stardust'))
+                        return {
+                            message = localize{type='variable',key='a_mult',vars={thunk}},
+                            mult_mod = thunk,
+                            colour = G.C.MULT
+                        }
+                    elseif thunk == 'chips' then
+                        thunk = pseudorandom_element({80,120,250}, pseudoseed('stardust'))
+                        return {
+                            message = localize{type='variable',key='a_chips',vars={thunk}},
+                            chip_mod = thunk,
+                            colour = G.C.CHIPS
+                        }
+                    else
+                        thunk = pseudorandom_element({1.5,2,4}, pseudoseed('stardust'))
+                        return{
+                            message = localize{type='variable',key='a_xmult',vars={thunk}},
+                            Xmult_mod = thunk,
+                            colour = G.C.MULT
+                        }
                     end
-                }))
+                    
+                elseif pseudorandom('stardust') < 2 / 3 then
+                    local thunk = pseudorandom_element({'money','consumable','superscore','digging'}, pseudoseed('stardust'))
+                    if thunk == 'money' then
+                        thunk = pseudorandom_element({2,5,10}, pseudoseed('stardust'))
+                        return{
+                            dollars = thunk,
+                            card = card
+                        }
+                    elseif thunk == 'consumable' and #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
+                        thunk = pseudorandom_element({'Tarot','Planet','Tarot','Planet','Spectral'}, pseudoseed('stardust'))
+                        G.GAME.consumeable_buffer = G.GAME.consumeable_buffer + 1
+                            return {
+                                extra = {focus = card, message = localize('k_plus_'..string.lower(thunk)), func = function()
+                                    G.E_MANAGER:add_event(Event({
+                                        trigger = 'before',
+                                        delay = 0.0,
+                                        func = (function()
+                                                local _card = create_card(thunk,G.consumeables, nil, nil, nil, nil, nil, 'stardust')
+                                                _card:add_to_deck()
+                                                G.consumeables:emplace(_card)
+                                                G.GAME.consumeable_buffer = 0
+                                            return true
+                                        end)}))
+                                end},
+                                colour = G.C.SECONDARY_SET.Spectral,
+                                card = card
+                            }
+                    elseif thunk == 'superscore' then
+                        return{
+                            message = "Variety!",
+                            mult_mod = 20,
+                            Xmult_mod = 2,
+                            chip_mod = 120,
+                            colour = G.C.PURPLE
+                        }
+                    elseif thunk == 'digging' then
+                        ease_hands_played(1)
+                        ease_discard(1, nil, true)
+                        card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+1 "..localize('k_hud_discards'), colour = G.C.RED})
+                        card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+1 "..localize('k_hud_hands'), colour = G.C.BLUE})
+                    end
+                else 
+                    local thunk = pseudorandom_element({'tag','copy','tally'}, pseudoseed('stardust'))
+                    if thunk == 'tag' then
+                        thunk = pseudorandom_element({1,1,1,2,2,3}, pseudoseed('stardust'))
+                        for i=1, thunk do
+                            G.E_MANAGER:add_event(Event({
+                                func = (function()
+                                add_tag(Tag('tag_double'))
+                                play_sound('generic1', 0.9 + math.random()*0.1, 0.8)
+                                play_sound('holo1', 1.2 + math.random()*0.1, 0.4)
+                                return true
+                                end)
+                            }))
+                        end
+                        delay(0.3)
+                    elseif thunk == 'copy' then
+                        thunk = pseudorandom_element(G.jokers.cards, pseudoseed('stardust'))
+                        local _card = copy_card(thunk,nil,nil,nil,true)
+                        _card:add_to_deck()
+                        G.jokers:emplace(_card)
+                        _card:set_edition({negative = true})
+                        if _card.ability.eternal then
+                            _card.ability.eternal = nil
+                        end
+                        _card.ability.perishable = true
+                        _card.ability.perish_tally = 2
+                    elseif thunk == 'tally' and not context.blueprint then
+                        card.ability.extra.tally_curr = card.ability.extra.tally_curr + 1
+                        card_eval_status_text(card, 'extra', nil, nil, nil, {message = tostring(card.ability.extra.tally_curr).."/"..tostring(card.ability.extra.tally_need), colour = G.C.PURPLE})
+                        if card.ability.extra.tally_curr == card.ability.extra.tally_need then
+                            G.jokers.config.card_limit = G.jokers.config.card_limit + 1
+                            delay(0.5)
+                            card_eval_status_text(card, 'extra', nil, nil, nil, {message = "+1 Joker Slot!", colour = G.C.FILTER})
+                            card.ability.extra.tally_curr = 0
+                        end
+                    end
+                end
+
+            elseif context.lucky_trigger then 
+                if pseudorandom('stardust') < 1 / 5 then
+                    if not context.other_card.edition then
+                        context.other_card:set_edition(poll_edition('stardust',nil,true,true))
+                    end
+                end
+
+            elseif context.end_of_round and not context.individual and not context.repetition then
+                if G.GAME.blind.boss then
+                    
                 
+                elseif pseudorandom('stardust') < 1 / 2 then
+                local thunk = false
+                    for k, v in ipairs(G.jokers.cards) do
+                        if v.set_cost and pseudorandom('stardust') < 1 / 3 then 
+                            v.ability.extra_value = (v.ability.extra_value or 0) + 2
+                            v:set_cost()
+                            card_eval_status_text(v, 'extra', nil, nil, nil, {message = localize('k_val_up'), colour = G.C.MONEY})
+                            if v ~= card then
+                                card:juice_up(0.5,0.3)
+                            end
+                        end
+                    end
+                    for k, v in ipairs(G.consumeables.cards) do
+                        if v.set_cost and pseudorandom('stardust') < 1 / 3 then 
+                            v.ability.extra_value = (v.ability.extra_value or 0) + 2
+                            v:set_cost()
+                            card_eval_status_text(v, 'extra', nil, nil, nil, {message = localize('k_val_up'), colour = G.C.MONEY})
+                            if v ~= card then
+                                card:juice_up(0.5,0.3)
+                            end
+                        end
+                    end
+                    
+                end
+
+            elseif context.skip_blind then
+                if pseudorandom('stardust') < 1 / 4 then
+                    G.hand:change_size(1)
+                    card_eval_status_text(card, 'extra', nil, nil, nil, {message = localize({type='variable',key='a_handsize',vars={1}}), colour = G.C.FILTER})
+                end
+
+            elseif context.skipping_booster and not context.open_booster then
+                if pseudorandom('stardust') < 1 / card.ability.extra.booster_repeat then
+                    card.ability.extra.booster_repeat = card.ability.extra.booster_repeat + 1
+                    G.E_MANAGER:add_event(Event({
+                    func = (function()
+                        add_tag(Tag(pseudorandom_element({'tag_buffoon','tag_charm','tag_meteor','tag_standard','tag_ethereal'}, pseudoseed('stardust'))))
+                        play_sound('generic1', 0.9 + math.random()*0.1, 0.8)
+                        play_sound('holo1', 1.2 + math.random()*0.1, 0.4)
+                        return true
+                    end)
+                    }))
+                end
+
+            elseif context.setting_blind then
+                card.ability.extra.booster_repeat = 3
+                if pseudorandom('stardust') < 2 / 3 then
+                    local thunk = pseudorandom_element({'hands','discards','both','score'}, pseudoseed('stardust'))
+                    if thunk == 'hands' then
+                        thunk = pseudorandom_element({1,1,1,2,2,3}, pseudoseed('stardust'))
+                        ease_hands_played(thunk, true)
+                        card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+"..tostring(thunk).." "..localize('k_hud_hands'), colour = G.C.BLUE})
+                    elseif thunk == 'discards' then
+                        thunk = pseudorandom_element({1,1,1,2,2,3}, pseudoseed('stardust'))
+                        ease_discard(thunk, true, true)
+                        card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+"..tostring(thunk).." "..localize('k_hud_discards'), colour = G.C.RED})
+                    elseif thunk == 'both' then
+                        thunk = pseudorandom_element({1,1,1,2,2,3}, pseudoseed('stardust'))
+                        ease_hands_played(thunk, true)
+                        card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+"..tostring(thunk).." "..localize('k_hud_hands'), colour = G.C.BLUE})
+                        ease_discard(thunk, true, true)
+                        card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+"..tostring(thunk).." "..localize('k_hud_discards'), colour = G.C.RED})
+                    elseif thunk == 'score' then
+                        thunk = pseudorandom_element({0.25,0.5,0.5,0.75,0.75,0.75},pseudoseed('stardust'))
+                        G.E_MANAGER:add_event(Event({
+                            func = function()
+                                G.GAME.blind.chips = math.floor(G.GAME.blind.chips * thunk)
+                                G.GAME.blind.chip_text = number_format(G.GAME.blind.chips)
+                                play_sound('chips2')
+                                card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "X"..tostring(thunk).." Score Requirement", colour = G.C.RED})
+                                return true
+                            end
+                        }))
+                    end
+                end
             end
         end
     end
@@ -3599,7 +3616,8 @@ SMODS.Joker{ --HonuKane
         ['name'] = 'HonuKane',
         ['text'] = {
             [1] = '{C:attention}Wild Cards{} are considered',
-            [2] = 'every enhancement at once'
+            [2] = 'every enhancement at once',
+            [3] = '{S:0.8,C:inactive}Stone excluded'
         }
     },
     pos = {
@@ -3625,7 +3643,7 @@ SMODS.Joker{ --HonuKane
     calculate = function(self, card, context)
         if context.check_enhancement and not context.blueprint then
             if context.other_card.config.center.key == "m_wild" then
-                return {m_bonus = true, m_mult = true, m_glass = true, m_steel = true, m_stone = true, m_gold = true, m_lucky = true}
+                return {m_bonus = true, m_mult = true, m_glass = true, m_steel = true, m_gold = true, m_lucky = true}
             end
         end
     end
@@ -3703,9 +3721,9 @@ SMODS.Joker{ --Dotty
     loc_txt = {
         ['name'] = 'Dotty',
         ['text'] = {
-            [1] = '{C:attention}+1{} hand size per {C:purple}Tarot',
-            [2] = 'card used this run,',
-            [3] = 'up to {C:attention}+#4#',
+            [1] = '{C:attention}+1{} hand size for every {C:attention}#2#',
+            [2] = '{C:purple}Tarot{} cards used this',
+            [3] = 'run, up to {C:attention}+#4#',
             [4] = '{C:inactive}(Currently {C:attention}+#3#{C:inactive} and {C:attention}#1#{C:inactive}/#2#)'
         }
     },
@@ -3768,7 +3786,7 @@ SMODS.Joker{ --MathIsFun
         ['name'] = 'MathIsFun',
         ['text'] = {
             [1] = 'if played hand\'s scoring',
-            [2] = 'cards\' chip values add up to {C:attention}#1#{},',
+            [2] = 'cards\' {C:blue}chip values{} add up to {C:attention}#1#{},',
             [3] = 'this Joker gains {X:mult,C:white}X#3#{} Mult, target',
             [4] = 'value changes each round',
             [5] = '{C:inactive}(Currently {X:mult,C:white}X#2#{C:inactive} Mult)',
@@ -3834,7 +3852,7 @@ SMODS.Joker{ --Trust the Process
             [1] = 'Once each {C:attention}Ante{}, selling a',
             [2] = 'Joker has a {C:green}#1# in #2#{} chance to',
             [3] = 'create {C:attention}#2#{} copies of that Joker',
-            [4] = '{C:attention}#3#{} remaining'
+            [4] = '{C:attention}#3#{} {C:inactive}remaining'
         }
     },
     pos = {
@@ -3858,18 +3876,19 @@ SMODS.Joker{ --Trust the Process
     end,
 
     calculate = function(self, card, context)
-        if card.ability.extra.active == 1 and context.selling_card then
+        if card.ability.extra.active == 1 and context.selling_card and context.card.ability.set == 'Joker' then
+            
             card.ability.extra.active = 0
-            if context.card.ability.set == 'Joker' and pseudorandom('trust') < G.GAME.probabilities.normal / card.ability.extra.odds then
+            if pseudorandom('trust') < G.GAME.probabilities.normal / card.ability.extra.odds then
                 local _card = copy_card(context.card)
                 _card:add_to_deck()
                 G.jokers:emplace(_card)
                 local _card2 = copy_card(context.card)
                 _card2:add_to_deck()
                 G.jokers:emplace(_card2)
-                card_eval_status_text(context.blueprint_card or self, 'extra', nil, nil, nil, {message = localize('k_duplicated_ex')})
+                card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = localize('k_duplicated_ex')})
             else
-                card_eval_status_text(context.blueprint_card or self, 'extra', nil, nil, nil, {message = localize('k_nope_ex')})
+                card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = localize('k_nope_ex'), colour = G.C.PURPLE})
             end
         elseif context.end_of_round and not context.repetition and not context.individual and G.GAME.blind.boss and not context.blueprint then
             card.ability.extra.active = 1
@@ -3996,7 +4015,7 @@ SMODS.Joker{ --Qcom
     loc_txt = {
         ['name'] = 'Qcom',
         ['text'] = {
-            [1] = 'Gives {X:mult,C:white}X#1# Mult{} for each',
+            [1] = 'Gives {X:mult,C:white}X#1#{} Mult for each',
             [2] = '{C:attention}unique{} Joker {C:attention}rarity{} you have',
             [3] = '{C:inactive}(Currently {X:mult,C:white}X#2#{C:inactive} Mult)'
         }
@@ -4044,8 +4063,9 @@ SMODS.Joker{ --Sbubby
     loc_txt = {
         ['name'] = 'Sbubby',
         ['text'] = {
-            [1] = 'Once each ante, create a Negative Tag after $#2# lost',
-            [2] = '{C:inactive}(Currently {C:money}$#1#{C:inactive}/{C:money}#2#{C:inactive})'
+            [1] = 'Once each {C:attention}Ante{}, create a',
+            [2] = '{C:attention}Negative Tag{} after $#2# lost',
+            [3] = '{C:inactive}(Currently {C:money}$#1#{C:inactive}/{C:money}#2#{C:inactive})'
         }
     },
     pos = {
@@ -4099,7 +4119,7 @@ SMODS.Joker{ --Torricelli
     key = "alasbabylon",
     config = {
         extra = {
-            odds = 4
+            odds = 3
         }
     },
     loc_txt = {
@@ -4164,7 +4184,10 @@ SMODS.Joker{ --Caddie
     loc_txt = {
         ['name'] = 'Caddie',
         ['text'] = {
-            [1] = 'Each played #1# gives X#1# Mult when scored, and each #1# held in hand gives X#1# Mult'
+            [1] = 'Each played {C:attention}#1#{} gives ',
+            [2] = '{X:red,C:white}X#1#{} Mult when scored,',
+            [3] = 'each {C:attention}#1#{} held in hand',
+            [4] = 'gives {X:red,C:white}X#1#{} Mult'
         }
     },
     pos = {
@@ -4215,7 +4238,7 @@ SMODS.Joker{ --Drspectred
     loc_txt = {
         ['name'] = 'Drspectred',
         ['text'] = {
-            [1] = 'When a card becomes {C:attention}enhanced,',
+            [1] = 'When a card becomes {C:attention}enhanced{},',
             [2] = 'it has a {C:green}#1# in #2#{} chance',
             [3] = 'to be {C:red}destroyed'
         }
@@ -4237,7 +4260,7 @@ SMODS.Joker{ --Drspectred
     atlas = 'ECother',
 
     loc_vars = function(self, info_queue, card)
-        return {vars = {}}
+        return {vars = {G.GAME.probabilities.normal, card.ability.extra.odds}}
     end,
 
     calculate = function(self, card, context)
@@ -4296,7 +4319,10 @@ SMODS.Joker{ --Audrizzle
     loc_txt = {
         ['name'] = 'Audrizzle',
         ['text'] = {
-            [1] = '+1 consumable slot, create a Spectral card whenever playing cards are destroyed'
+            [1] = '{C:attention}+1{} consumable slot,',
+            [2] = 'create a {C:spectral}Spectral{} card',
+            [3] = 'whenever playing cards',
+            [4] = 'are destroyed'
         }
     },
     pos = {
@@ -4359,14 +4385,19 @@ SMODS.Joker{ --Crash
     config = {
         extra = {
             odds = 5,
-            sofar = 0,
-            valid = 0
+            sofar = 1,
+            valid = 0,
+            crashes = 0,
+            sofartwoelectricboogaloo = 0
         }
     },
     loc_txt = {
         ['name'] = 'Crash',
         ['text'] = {
-            [1] = 'last #1# played cards used in scoring are retriggered then have a #1# in #2# chance to not activate this effect again'
+            [1] = 'Last {C:attention}#1#{} played cards used in',
+            [2] = 'scoring are {C:attention}retriggered{} then',
+            [3] = 'have a {C:green}#1# in #2#{} chance NOT',
+            [4] = 'to activate this effect again'
         }
     },
     pos = {
@@ -4390,13 +4421,16 @@ SMODS.Joker{ --Crash
     end,
 
     calculate = function(self, card, context)
-        if context.before and not context.blueprint then
+        if context.before then
             card.ability.extra.valid = #context.scoring_hand - G.GAME.probabilities.normal
-        
+            card.ability.extra.crashes = card.ability.extra.crashes + 1
+            
         elseif context.cardarea == G.play and context.repetition then
-            card.ability.extra.sofar = card.ability.extra.sofar + 1
+
+            local again, reps = true, 1
+
             if card.ability.extra.sofar > card.ability.extra.valid then
-                local again, reps = true, 1
+                
                 while again do
                     if pseudorandom('crash') < G.GAME.probabilities.normal / card.ability.extra.odds then
                         again = false
@@ -4404,6 +4438,16 @@ SMODS.Joker{ --Crash
                         reps = reps + 1
                     end
                 end
+                
+            end
+
+            card.ability.extra.sofartwoelectricboogaloo = card.ability.extra.sofartwoelectricboogaloo + 1
+            if card.ability.extra.sofartwoelectricboogaloo == card.ability.extra.crashes then
+                card.ability.extra.sofar = card.ability.extra.sofar + 1
+                card.ability.extra.sofartwoelectricboogaloo = 0
+            end
+
+            if not again then
                 return {
                     message = localize('k_again_ex'),
                     repetitions = reps,
@@ -4412,8 +4456,10 @@ SMODS.Joker{ --Crash
             end
             
         elseif context.after and not context.blueprint then
-            card.ability.extra.sofar = 0
+            card.ability.extra.crashes = 0
+            card.ability.extra.sofar = 1
             card.ability.extra.valid = 0
+            card.ability.extra.sofartwoelectricboogaloo = 0
         end
     end
 }
@@ -4432,18 +4478,21 @@ SMODS.Joker{ --Get Rich Quick!
     loc_txt = {
         ['name'] = 'Get Rich Quick!',
         ['text'] = {
-            [1] = '$#1# debt and -$#2# dollar each round, increases by #3# and #4#'
+            [1] = 'Go up to {C:red}-$#1#{} in debt and',
+            [2] = 'lose {C:money}-$#2#{} dollars each round,',
+            [3] = 'increases by {C:red}-$#3#{} and {C:money}-$#4#',
+            [4] = 'at the end of each round'
         }
     },
     pos = {
-        x = 3,
+        x = 9,
         y = 0
     },
     soul_pos = {
-        x = 4,
+        x = 8,
         y = 0
     },
-    cost = 20,
+    cost = -2,
     rarity = "ExtraCredit_alumni",
     blueprint_compat = false,
     eternal_compat = true,
@@ -4470,7 +4519,7 @@ SMODS.Joker{ --Get Rich Quick!
             card.ability.extra.rent = card.ability.extra.rent + card.ability.extra.even_more_rent
             G.GAME.bankrupt_at = G.GAME.bankrupt_at - card.ability.extra.even_more_credit
             card_eval_status_text(card, 'extra', nil, nil, nil, {
-                    message = "+1 "..localize('j_credit_card').."!",
+                    message = "Debt!",
                         colour = G.C.MONEY,
                     card = card
                 }) 
@@ -4493,10 +4542,10 @@ SMODS.Joker{ --Splatter
     loc_txt = {
         ['name'] = 'Splatter',
         ['text'] = {
-            [1] = 'lucky cards also have a',
-            [2] = '#1# in #2# chance for X#3# Mult',
-            [3] = '#1# in #4# chance for +#5# Chips',
-            [4] = '#1# in #6# chance to double your money'
+            [1] = '{C:attention}Lucky Cards{} also have a',
+            [2] = '{C:green}#1# in #2#{} chance for {C:white,X:red}X#3#{} Mult',
+            [3] = '{C:green}#1# in #4#{} chance for {C:blue}+#5# Chips',
+            [4] = '{C:green}#1# in #6#{} chance to {C:attention}double{} your money'
         }
     },
     pos = {
