@@ -1927,7 +1927,6 @@ SMODS.Joker{ --Ship of Theseus
 
     calculate = function(self, card, context)
         if context.cards_destroyed then
-            print("cards destroyed")
             card.ability.extra.tick = false
             for k, val in ipairs(context.glass_shattered) do
                 if not context.blueprint then
@@ -4367,7 +4366,7 @@ SMODS.Joker{ --Crash
     loc_txt = {
         ['name'] = 'Crash',
         ['text'] = {
-            [1] = 'nova drift cargo train but for retriggers'
+            [1] = 'last #1# played cards used in scoring are retriggered then have a #1# in #2# chance to not activate this effect again'
         }
     },
     pos = {
@@ -4387,7 +4386,7 @@ SMODS.Joker{ --Crash
     atlas = 'ECother',
 
     loc_vars = function(self, info_queue, card)
-        return {vars = {}}
+        return {vars = {G.GAME.probabilities.normal, card.ability.extra.odds}}
     end,
 
     calculate = function(self, card, context)
