@@ -255,9 +255,6 @@ local function unique_rarities()
             rarities[#rarities+1] = v.config.center.rarity
         end
     end
-    for k,v in ipairs(rarities) do
-        print(tostring(v))
-    end
     return #rarities
 end
 local sc = Card.set_cost
@@ -265,7 +262,7 @@ function Card:set_cost()
     sc(self)
     if self.config.center.key == 'j_ExtraCredit_xilande' then
         self.cost = math.floor(20*(100-G.GAME.discount_percent)/100)
-        self.sell_cost = -1
+        self.sell_cost = -10
     end
 end
 
@@ -2030,7 +2027,7 @@ SMODS.Joker{ --Accretion Disk
     },
     cost = 7,
     rarity = 3,
-    blueprint_compat = true,
+    blueprint_compat = false,
     eternal_compat = true,
     unlocked = true,
     discovered = true,
@@ -2043,13 +2040,13 @@ SMODS.Joker{ --Accretion Disk
     calculate = function(self, card, context)
         if context.using_consumeable then
             if context.consumeable.ability.set == 'Planet' then
-                if not context.blueprint then
-                    card.ability.extra.used = card.ability.extra.used + 1
-                end
+
+                card.ability.extra.used = card.ability.extra.used + 1
+
                 if card.ability.extra.used >= 3 then
-                    if not context.blueprint then
-                        card.ability.extra.used = 0
-                    end
+                    card.ability.extra.used = 0
+
+
                     local _hand, _tally = nil, 0
                     for k, v in ipairs(G.handlist) do
                         if G.GAME.hands[v].visible and G.GAME.hands[v].played > _tally then
@@ -2061,6 +2058,8 @@ SMODS.Joker{ --Accretion Disk
                     update_hand_text({sound = 'button', volume = 0.7, pitch = 0.8, delay = 0.3}, {handname=localize(_hand, 'poker_hands'),chips = G.GAME.hands[_hand].chips, mult = G.GAME.hands[_hand].mult, level=G.GAME.hands[_hand].level})
                     level_up_hand(context.blueprint_card or card, _hand, nil, 1)
                     update_hand_text({sound = 'button', volume = 0.7, pitch = 1.1, delay = 0}, {mult = 0, chips = 0, handname = '', level = ''})
+
+
                 end
             end
         end
@@ -3421,7 +3420,14 @@ SMODS.Joker{ --CampfireCollective
 
             elseif context.end_of_round and not context.individual and not context.repetition then
                 if G.GAME.blind.boss then
-                    
+                    for k, v in ipairs(G.consumeables.cards) do
+                        if not v.edition then
+                            if pseudorandom('stardust') < 1 / 3 then
+                                v:set_edition(poll_edition('stardust',nil,true,true))
+                                break
+                            end
+                        end
+                    end
                 
                 elseif pseudorandom('stardust') < 1 / 2 then
                 local thunk = false
@@ -3445,7 +3451,6 @@ SMODS.Joker{ --CampfireCollective
                             end
                         end
                     end
-                    
                 end
 
             elseif context.skip_blind then
@@ -3465,6 +3470,18 @@ SMODS.Joker{ --CampfireCollective
                         return true
                     end)
                     }))
+                end
+
+            elseif context.using_consumeable then
+                if pseudorandom('stardust') < 1 / 10 then
+                SMODS.change_booster_limit(1)
+                SMODS.change_booster_limit(-1)
+                end
+
+            elseif context.selling_self then
+                if pseudorandom('stardust') < 1 / 3 then
+                    change_shop_size(1)
+                    card_eval_status_text(card, 'extra', nil, nil, nil, {message = "+1 Shop Slot!", colour = G.C.FILTER})
                 end
 
             elseif context.setting_blind then
@@ -3689,7 +3706,7 @@ SMODS.Joker{ --Cyril
         if context.game_over and not context.blueprint then
             G.E_MANAGER:add_event(Event({
                 func = function()
-                    ease_ante(1 - G.GAME.round_resets.ante)
+                    ease_ante((G.GAME.blind.boss and 0 or 1) - G.GAME.round_resets.ante)
                     G.GAME.round_resets.blind_ante = 1
                     G.jokers.config.card_limit = G.jokers.config.card_limit - 1
                     G.hand_text_area.blind_chips:juice_up()
@@ -3816,8 +3833,9 @@ SMODS.Joker{ --MathIsFun
         if context.before and not context.blueprint then
             card.ability.extra.this_hand = 0
             for k, v in ipairs(context.scoring_hand) do 
-                card.ability.extra.this_hand = card.ability.extra.this_hand + (v.base.nominal or 0) + (v.ability.bonus or 0) + (v.ability.perma_bonus or 0)
-                print(card.ability.extra.this_hand)
+                if not v.debuff then
+                    card.ability.extra.this_hand = card.ability.extra.this_hand + (v.base.nominal or 0) + (v.ability.bonus or 0) + (v.ability.perma_bonus or 0)
+                end
             end
             if card.ability.extra.this_hand == G.GAME.current_round.math_val then
                 card.ability.extra.Xmult = card.ability.extra.Xmult + card.ability.extra.Xmult_mod
@@ -4469,19 +4487,16 @@ SMODS.Joker{ --Get Rich Quick!
     key = "xilande",
     config = {
         extra = {
-            credit = 30,
-            rent = 1,
-            even_more_credit = 30,
-            even_more_rent = 1
+            credit = 80,
+            set = 0
         }
     },
     loc_txt = {
         ['name'] = 'Get Rich Quick!',
         ['text'] = {
-            [1] = 'Go up to {C:red}-$#1#{} in debt and',
-            [2] = 'lose {C:money}-$#2#{} dollars each round,',
-            [3] = 'increases by {C:red}-$#3#{} and {C:money}-$#4#',
-            [4] = 'at the end of each round'
+            [1] = 'Go up to {C:red}-$#1#{} in debt,',
+            [2] = 'set money to {C:money}$#2#{} when',
+            [3] = '{C:attention}Boss Blind{} is defeated'
         }
     },
     pos = {
@@ -4492,7 +4507,7 @@ SMODS.Joker{ --Get Rich Quick!
         x = 8,
         y = 0
     },
-    cost = -2,
+    cost = -20,
     rarity = "ExtraCredit_alumni",
     blueprint_compat = false,
     eternal_compat = true,
@@ -4501,7 +4516,7 @@ SMODS.Joker{ --Get Rich Quick!
     atlas = 'ECother',
 
     loc_vars = function(self, info_queue, card)
-        return {vars = {card.ability.extra.credit, card.ability.extra.rent, card.ability.extra.even_more_credit, card.ability.extra.even_more_rent}}
+        return {vars = {card.ability.extra.credit, card.ability.extra.set}}
     end,
 
     add_to_deck = function(self, card, from_debuff)
@@ -4513,16 +4528,12 @@ SMODS.Joker{ --Get Rich Quick!
     end,
 
     calculate = function(self, card, context)
-        if context.end_of_round and not context.repetition and not context.individual and not context.blueprint then
-            ease_dollars(-card.ability.extra.rent)
-            card.ability.extra.credit = card.ability.extra.credit + card.ability.extra.even_more_credit
-            card.ability.extra.rent = card.ability.extra.rent + card.ability.extra.even_more_rent
-            G.GAME.bankrupt_at = G.GAME.bankrupt_at - card.ability.extra.even_more_credit
-            card_eval_status_text(card, 'extra', nil, nil, nil, {
-                    message = "Debt!",
-                        colour = G.C.MONEY,
-                    card = card
-                }) 
+        if context.end_of_round and not context.repetition and not context.individual and not context.blueprint and G.GAME.blind.boss then
+            ease_dollars(-G.GAME.dollars)
+            card_eval_status_text(card, 'extra', nil, nil, nil, {message = "Scammed!", colour = G.C.MONEY, card = card}) 
+
+        elseif context.selling_self and not context.blueprint then
+            card_eval_status_text(card, 'extra', nil, nil, nil, {message = "Scammed!", colour = G.C.MONEY, card = card})
         end
     end
 }
