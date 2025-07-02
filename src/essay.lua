@@ -262,7 +262,7 @@ function Card:set_cost()
     sc(self)
     if self.config.center.key == 'j_ExtraCredit_xilande' then
         self.cost = math.floor(20*(100-G.GAME.discount_percent)/100)
-        self.sell_cost = -10
+        self.sell_cost = -1
     end
 end
 
@@ -3671,6 +3671,7 @@ SMODS.Joker{ --Cyril
     key = "expelsword",
     config = {
         extra = {
+            timeywimey = false
         }
     },
     loc_txt = {
@@ -3704,9 +3705,21 @@ SMODS.Joker{ --Cyril
 
     calculate = function(self, card, context)
         if context.game_over and not context.blueprint then
+            local indexMe, indexYou = 0, -1
+            for k, v in ipairs(G.jokers.cards) do
+                if v.config.center.key == 'j_ExtraCredit_expelsword' then
+                    indexYou = k
+                end
+                if v == card then
+                    indexMe = k
+                end
+            end
+            if indexMe == indexYou then
+                card.ability.extra.timeywimey = true
+            end
             G.E_MANAGER:add_event(Event({
                 func = function()
-                    ease_ante((G.GAME.blind.boss and 0 or 1) - G.GAME.round_resets.ante)
+                    if card.ability.extra.timeywimey then ease_ante((G.GAME.blind.boss and 0 or 1) - G.GAME.round_resets.ante) end
                     G.GAME.round_resets.blind_ante = 1
                     G.jokers.config.card_limit = G.jokers.config.card_limit - 1
                     G.hand_text_area.blind_chips:juice_up()
@@ -4286,35 +4299,37 @@ SMODS.Joker{ --Drspectred
         if context.EC_set_ability then
             if context.EC_set_ability.center.set == 'Enhanced' and pseudorandom('hang \'em') < G.GAME.probabilities.normal / card.ability.extra.odds then
                 
-                if context.EC_set_ability.delay_sprites then
-                    if not contains(card.ability.extra.dead, context.EC_set_ability._card) then
-                        card.ability.extra.dead[#card.ability.extra.dead + 1] = context.EC_set_ability._card
-                        card_eval_status_text(context.EC_set_ability._card, 'extra', nil, nil, nil, {message = '!', colour = G.C.RED})
-                    end
+                
+                    if context.EC_set_ability.delay_sprites then
+                        if not contains(card.ability.extra.dead, context.EC_set_ability._card) then
+                            card.ability.extra.dead[#card.ability.extra.dead + 1] = context.EC_set_ability._card
+                            card_eval_status_text(context.EC_set_ability._card, 'extra', nil, nil, nil, {message = '!', colour = G.C.RED})
+                        end
 
-                elseif context.EC_set_ability._card.ability.name == 'Glass Card' then 
-                    G.E_MANAGER:add_event(Event({
-                        trigger = "after",
-                        delay = 0.25,
-                        func = function()
-                            card_eval_status_text(context.EC_set_ability._card, 'extra', nil, nil, nil, {message = '!', colour = G.C.RED})
-                            context.EC_set_ability._card:shatter()
-                            card:juice_up(0.3, 0.5)
-                            return true
-                        end,
-                    }))
-                else
-                    G.E_MANAGER:add_event(Event({
-                        trigger = "after",
-                        delay = 0.25,
-                        func = function()
-                            card_eval_status_text(context.EC_set_ability._card, 'extra', nil, nil, nil, {message = '!', colour = G.C.RED})
-                            context.EC_set_ability._card:start_dissolve()
-                            card:juice_up(0.3, 0.5)
-                            return true
-                        end,
-                    }))
-                end
+                    elseif context.EC_set_ability._card.ability.name == 'Glass Card' then 
+                        G.E_MANAGER:add_event(Event({
+                            trigger = "after",
+                            delay = 0.2,
+                            func = function()
+                                card_eval_status_text(context.EC_set_ability._card, 'extra', nil, nil, nil, {message = '!', colour = G.C.RED})
+                                context.EC_set_ability._card:shatter()
+                                card:juice_up(0.3, 0.5)
+                                return true
+                            end,
+                        }))
+                    else
+                        G.E_MANAGER:add_event(Event({
+                            trigger = "after",
+                            delay = 0.2,
+                            func = function()
+                                card_eval_status_text(context.EC_set_ability._card, 'extra', nil, nil, nil, {message = '!', colour = G.C.RED})
+                                context.EC_set_ability._card:start_dissolve()
+                                card:juice_up(0.3, 0.5)
+                                return true
+                            end,
+                        }))
+                    end
+                
             end
         elseif context.destroying_card and not context.blueprint then
             return contains(card.ability.extra.dead, context.destroying_card)
@@ -4529,8 +4544,11 @@ SMODS.Joker{ --Get Rich Quick!
 
     calculate = function(self, card, context)
         if context.end_of_round and not context.repetition and not context.individual and not context.blueprint and G.GAME.blind.boss then
-            ease_dollars(-G.GAME.dollars)
+            local amount = G.GAME.dollars + (G.GAME.dollar_buffer or 0)
+            ease_dollars(-amount)
+            G.GAME.dollar_buffer = (G.GAME.dollar_buffer or 0) - amount
             card_eval_status_text(card, 'extra', nil, nil, nil, {message = "Scammed!", colour = G.C.MONEY, card = card}) 
+            G.E_MANAGER:add_event(Event({func = (function() G.GAME.dollar_buffer = 0; return true end)}))
 
         elseif context.selling_self and not context.blueprint then
             card_eval_status_text(card, 'extra', nil, nil, nil, {message = "Scammed!", colour = G.C.MONEY, card = card})
@@ -4655,12 +4673,12 @@ SMODS.Consumable { --Grimoire
         }
     },
     pos = {
-        x = 3,
-        y = 0
+        x = 9,
+        y = 1
     },
     soul_pos = {
-        x = 4,
-        y = 0
+        x = 8,
+        y = 1
     },
     atlas = 'ECother',
     pools = {["Spectral"] = true},
