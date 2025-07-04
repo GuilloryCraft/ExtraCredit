@@ -57,5 +57,10 @@ Special thanks:
 - Akai
 - localthunk
 
-
 If you're supposed to be on this list somewhere and aren't, please reach out to me on discord! My username is campfirecollective
+
+## Installation
+
+Assuming you've already setup [Steamodded **1.0.0-Alpha**](https://github.com/Steamopollys/Steamodded/archive/refs/heads/main.zip), simply download the repository here as a Zip file using the 'Code' button above and then unzip the entire archive into it's own folder at '%appdata%\Balatro\mods', then restart the game.
+
+*Note:* You will need to start a new run to use the new jokers, attempting to continue a previous run in progress will likely crash the game.
