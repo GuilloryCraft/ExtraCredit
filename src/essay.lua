@@ -2473,8 +2473,8 @@ SMODS.Joker{ --Coupon Sheet
     loc_txt = {
         ['name'] = 'Coupon Sheet',
         ['text'] = {
-            [1] = "Create a {C:attention}Coupon Tag",
-            [2] = "and a {C:attention}Voucher Tag",
+            [1] = "Create a {C:attention}Voucher Tag",
+            [2] = "and a {C:attention}Coupon Tag",
             [3] = "after {C:attention}Boss Blind{} is defeated"
         }
     },
@@ -2498,20 +2498,20 @@ SMODS.Joker{ --Coupon Sheet
 
     calculate = function(self, card, context)
         if context.end_of_round and not context.repetition and not context.individual and G.GAME.blind.boss and not context.blueprint then
-            card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+1 Coupon Tag!", colour = G.C.FILTER})
+			card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+1 Voucher Tag!", colour = G.C.FILTER})
             G.E_MANAGER:add_event(Event({
                 func = (function()
-                    add_tag(Tag('tag_coupon'))
+                    add_tag(Tag('tag_voucher'))
                     play_sound('generic1', 0.9 + math.random()*0.1, 0.8)
                     play_sound('holo1', 1.2 + math.random()*0.1, 0.4)
                     return true
                 end)
             }))
             delay(0.3)
-            card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+1 Voucher Tag!", colour = G.C.FILTER})
+			card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+1 Coupon Tag!", colour = G.C.FILTER})
             G.E_MANAGER:add_event(Event({
                 func = (function()
-                    add_tag(Tag('tag_voucher'))
+                    add_tag(Tag('tag_coupon'))
                     play_sound('generic1', 0.9 + math.random()*0.1, 0.8)
                     play_sound('holo1', 1.2 + math.random()*0.1, 0.4)
                     return true
