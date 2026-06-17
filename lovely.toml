@@ -69,3 +69,10 @@ if next(find_joker("Lucky 7")) then
     end
 end
 '''
+
+[[patches]]
+[patches.regex]
+target = 'functions/state_events.lua'
+pattern = 'cards_to_draw\[i\]\.ability.extra_slots_used'
+position = 'at'
+payload = '(cards_to_draw[i] and cards_to_draw[i].ability and cards_to_draw[i].ability.extra_slots_used or 0)'
